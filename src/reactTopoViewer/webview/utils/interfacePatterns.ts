@@ -13,7 +13,7 @@ export { DEFAULT_INTERFACE_PATTERNS };
 // ============================================================================
 
 /** Default interface pattern when no specific pattern is configured */
-export const DEFAULT_INTERFACE_PATTERN = 'eth{n}';
+export const DEFAULT_INTERFACE_PATTERN = 'eth{n:0}';
 
 /** Regex for parsing interface patterns like "eth{n}" or "Gi0/0/{n:0}" */
 export const INTERFACE_PATTERN_REGEX = /^(.+)?\{n(?::(\d+))?\}(.+)?$/;
@@ -44,7 +44,7 @@ export function parseInterfacePattern(pattern: string): ParsedInterfacePattern {
     return { prefix: pattern || 'eth', suffix: '', startIndex: 0 };
   }
   const [, prefix = '', startStr, suffix = ''] = match;
-  const startIndex = startStr ? parseInt(startStr, 10) : 0;
+  const startIndex = startStr ? parseInt(startStr, 10) : 1;
   return { prefix, suffix, startIndex };
 }
 
