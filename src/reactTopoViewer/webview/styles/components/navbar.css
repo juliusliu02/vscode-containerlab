@@ -8,7 +8,7 @@
   .navbar {
     background-color: var(--vscode-tab-activeBackground);
     border-bottom: 1px solid var(--vscode-tab-border);
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     right: 0;

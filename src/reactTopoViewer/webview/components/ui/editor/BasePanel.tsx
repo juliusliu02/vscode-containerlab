@@ -215,6 +215,7 @@ export function BasePanel(props: Readonly<BasePanelProps>): React.ReactElement |
 
   const { position, isDragging, handleMouseDown } = usePanelDrag({
     storageKey,
+    panelRef,
     initialPosition: sz.initialPosition,
     panelWidth: sz.width
   });
@@ -239,7 +240,7 @@ export function BasePanel(props: Readonly<BasePanelProps>): React.ReactElement |
     maxHeight: maxH,
     zIndex: sz.zIndex
   };
-  const cls = `panel panel-overlay panel-editor fixed overflow-hidden flex flex-col${isResizing ? " panel-resizing" : ""}`;
+  const cls = `panel panel-overlay panel-editor absolute overflow-hidden flex flex-col${isResizing ? " panel-resizing" : ""}`;
 
   return (
     <>

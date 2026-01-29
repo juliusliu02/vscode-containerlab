@@ -12,15 +12,18 @@ export interface Position {
 
 const MIN_VISIBLE_HEIGHT = 50;
 const MIN_VISIBLE_WIDTH = 20;
-const DEFAULT_TOP_MARGIN = 72; // Navbar height
+const DEFAULT_TOP_MARGIN = 12; // Navbar height
 const DEFAULT_PANEL_HEIGHT = 400; // Estimated panel height for centering
 
 /**
  * Calculate centered position for a panel
  */
-function getCenteredPosition(panelWidth: number): Position {
-  const x = Math.max(20, (window.innerWidth - panelWidth) / 2);
-  const y = Math.max(DEFAULT_TOP_MARGIN, (window.innerHeight - DEFAULT_PANEL_HEIGHT) / 2);
+function getCenteredPosition(panelWidth: number, offsetParent?: Element): Position {
+  const x = Math.max(20, ((offsetParent?.clientWidth ?? window.innerWidth) - panelWidth) / 2);
+  const y = Math.max(
+    DEFAULT_TOP_MARGIN,
+    ((offsetParent?.clientHeight ?? window.innerHeight) - DEFAULT_PANEL_HEIGHT) / 2
+  );
   return { x, y };
 }
 
@@ -32,10 +35,10 @@ export interface UsePanelDragOptions {
   topMargin?: number;
   minVisibleWidth?: number;
   minVisibleHeight?: number;
+  panelRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export interface UsePanelDragReturn {
-  panelRef: React.RefObject<HTMLDivElement | null>;
   position: Position;
   isDragging: boolean;
   handleMouseDown: (e: React.MouseEvent) => void;
@@ -46,19 +49,23 @@ interface ConstraintOptions {
   topMargin: number;
   minVisibleWidth: number;
   minVisibleHeight: number;
+  offsetParent?: Element;
 }
 
 /**
  * Constrain position within viewport bounds
  */
 function constrainPosition(pos: Position, opts: ConstraintOptions): Position {
-  const { panelWidth, topMargin, minVisibleWidth, minVisibleHeight } = opts;
+  const { panelWidth, topMargin, minVisibleWidth, minVisibleHeight, offsetParent } = opts;
   return {
     x: Math.max(
       -(panelWidth - minVisibleWidth),
-      Math.min(pos.x, window.innerWidth - minVisibleWidth)
+      Math.min(pos.x, (offsetParent?.clientWidth ?? window.innerWidth) - minVisibleWidth)
     ),
-    y: Math.max(topMargin, Math.min(pos.y, window.innerHeight - minVisibleHeight))
+    y: Math.max(
+      topMargin,
+      Math.min(pos.y, (offsetParent?.clientHeight ?? window.innerHeight) - minVisibleHeight)
+    )
   };
 }
 
@@ -92,7 +99,7 @@ function loadPosition(
   opts: ConstraintOptions
 ): Position {
   // If a specific initial position was provided, use it
-  const fallbackPos = defaultPos ?? getCenteredPosition(opts.panelWidth);
+  const fallbackPos = defaultPos ?? getCenteredPosition(opts.panelWidth, opts.offsetParent);
 
   if (!storageKey) return constrainPosition(fallbackPos, opts);
   try {
@@ -165,7 +172,8 @@ function useDragEvents(
     const handleMouseMove = (e: MouseEvent) => {
       const newPos = { x: e.clientX - startRef.current!.x, y: e.clientY - startRef.current!.y };
       const actualWidth = panelRef.current?.offsetWidth || widthRef.current!;
-      setPosition(constrainPosition(newPos, { ...opts, panelWidth: actualWidth }));
+      const offsetParent = panelRef.current?.offsetParent ?? undefined;
+      setPosition(constrainPosition(newPos, { ...opts, offsetParent, panelWidth: actualWidth }));
     };
 
     const handleMouseUp = () => {
@@ -192,7 +200,10 @@ function useResizeHandler(
   useEffect(() => {
     const handleResize = () => {
       const actualWidth = panelRef.current?.offsetWidth || widthRef.current!;
-      setPosition((prev) => constrainPosition(prev, { ...opts, panelWidth: actualWidth }));
+      setPosition((prev) => {
+        const offsetParent = panelRef.current?.offsetParent ?? undefined;
+        return constrainPosition(prev, { ...opts, offsetParent, panelWidth: actualWidth });
+      });
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -207,6 +218,7 @@ export function usePanelDrag(options: UsePanelDragOptions = {}): UsePanelDragRet
     storageKey,
     initialPosition, // undefined means center the panel
     panelWidth = 400,
+    panelRef = useRef<HTMLDivElement>(null),
     isLocked = false,
     topMargin = DEFAULT_TOP_MARGIN,
     minVisibleWidth = MIN_VISIBLE_WIDTH,
@@ -215,7 +227,6 @@ export function usePanelDrag(options: UsePanelDragOptions = {}): UsePanelDragRet
 
   const opts: ConstraintOptions = { panelWidth, topMargin, minVisibleWidth, minVisibleHeight };
 
-  const panelRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<Position>(() =>
     loadPosition(storageKey, initialPosition, opts)
   );
@@ -246,7 +257,7 @@ export function usePanelDrag(options: UsePanelDragOptions = {}): UsePanelDragRet
   );
   useResizeHandler(panelRef, widthRef, opts, setPosition);
 
-  return { panelRef, position, isDragging, handleMouseDown };
+  return { position, isDragging, handleMouseDown };
 }
 
 /**

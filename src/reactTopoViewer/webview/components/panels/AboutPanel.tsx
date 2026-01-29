@@ -227,7 +227,7 @@ export const AboutPanel: React.FC<AboutPanelProps> = ({ isVisible, onClose }) =>
       title="About TopoViewer"
       isVisible={isVisible}
       onClose={onClose}
-      initialPosition={{ x: window.innerWidth - 380, y: window.innerHeight - 500 }}
+      // initialPosition={{ x: window.innerWidth - 380, y: window.innerHeight - 500 }}
       width={340}
       storageKey="about"
       zIndex={21}
