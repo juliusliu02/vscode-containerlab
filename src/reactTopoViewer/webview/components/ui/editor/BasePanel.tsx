@@ -27,11 +27,18 @@ function constrainSize(
   h: number,
   pos: Pos,
   minW: number,
-  minH: number
+  minH: number,
+  offsetParent?: Element
 ): { width: number; height: number } {
   return {
-    width: Math.max(minW, Math.min(w, window.innerWidth - pos.x - 20)),
-    height: Math.max(minH, Math.min(h, window.innerHeight - pos.y - 20))
+    width: Math.max(
+      minW,
+      Math.min(w, (offsetParent?.clientWidth ?? window.innerWidth) - pos.x - 20)
+    ),
+    height: Math.max(
+      minH,
+      Math.min(h, (offsetParent?.clientHeight ?? window.innerHeight) - pos.y - 20)
+    )
   };
 }
 
@@ -40,7 +47,8 @@ function loadSize(
   defaultSize: Size,
   pos: Pos,
   minW: number,
-  minH: number
+  minH: number,
+  offsetParent?: Element
 ): Size {
   if (!key) return defaultSize;
   try {
@@ -48,7 +56,7 @@ function loadSize(
     if (saved) {
       const p = JSON.parse(saved) as { width?: number; height?: number };
       if (typeof p.width === "number" && typeof p.height === "number") {
-        return constrainSize(p.width, p.height, pos, minW, minH);
+        return constrainSize(p.width, p.height, pos, minW, minH, offsetParent);
       }
     }
   } catch {
@@ -106,7 +114,14 @@ function usePanelResize(
   panelRef?: React.RefObject<HTMLDivElement | null>
 ) {
   const [size, setSize] = useState<Size>(() =>
-    loadSize(storageKey, { width: initialWidth, height: initialHeight }, position, minW, minH)
+    loadSize(
+      storageKey,
+      { width: initialWidth, height: initialHeight },
+      position,
+      minW,
+      minH,
+      panelRef?.current?.offsetParent ?? undefined
+    )
   );
   const [isResizing, setIsResizing] = useState(false);
   const startRef = useRef({ x: 0, y: 0, w: 0, h: 0 });
@@ -140,11 +155,12 @@ function usePanelResize(
           startRef.current.h + e.clientY - startRef.current.y,
           posRef.current,
           minW,
-          minH
+          minH,
+          panelRef?.current?.offsetParent ?? undefined
         )
       );
     },
-    [isResizing, minW, minH]
+    [isResizing, minW, minH, panelRef]
   );
 
   const handleResizeEnd = useCallback(() => {
@@ -240,7 +256,7 @@ export function BasePanel(props: Readonly<BasePanelProps>): React.ReactElement |
     maxHeight: maxH,
     zIndex: sz.zIndex
   };
-  const cls = `panel panel-overlay panel-editor absolute overflow-hidden flex flex-col${isResizing ? " panel-resizing" : ""}`;
+  const cls = `panel panel-overlay panel-editor absolute flex flex-col${isResizing ? " panel-resizing" : ""}`;
 
   return (
     <>
