@@ -12,13 +12,13 @@ export interface Position {
 
 const MIN_VISIBLE_HEIGHT = 50;
 const MIN_VISIBLE_WIDTH = 20;
-const DEFAULT_TOP_MARGIN = 12; // Navbar height
+const DEFAULT_TOP_MARGIN = 12; // Padding under navbar
 const DEFAULT_PANEL_HEIGHT = 400; // Estimated panel height for centering
 
 /**
  * Calculate centered position for a panel
  */
-function getCenteredPosition(panelWidth: number, offsetParent?: Element): Position {
+function getCenteredPosition(panelWidth: number, offsetParent?: Element | null): Position {
   const x = Math.max(20, ((offsetParent?.clientWidth ?? window.innerWidth) - panelWidth) / 2);
   const y = Math.max(
     DEFAULT_TOP_MARGIN,
@@ -49,7 +49,7 @@ interface ConstraintOptions {
   topMargin: number;
   minVisibleWidth: number;
   minVisibleHeight: number;
-  offsetParent?: Element;
+  offsetParent?: Element | null;
 }
 
 /**
@@ -172,7 +172,7 @@ function useDragEvents(
     const handleMouseMove = (e: MouseEvent) => {
       const newPos = { x: e.clientX - startRef.current!.x, y: e.clientY - startRef.current!.y };
       const actualWidth = panelRef.current?.offsetWidth || widthRef.current!;
-      const offsetParent = panelRef.current?.offsetParent ?? undefined;
+      const offsetParent = panelRef.current?.offsetParent;
       setPosition(constrainPosition(newPos, { ...opts, offsetParent, panelWidth: actualWidth }));
     };
 
@@ -234,6 +234,15 @@ export function usePanelDrag(options: UsePanelDragOptions = {}): UsePanelDragRet
   const startRef = useRef({ x: 0, y: 0 });
   const widthRef = useRef(panelWidth);
   widthRef.current = panelWidth;
+
+  // re-constrain panel on open to avoid panels stuck out of frame
+  useEffect(() => {
+    if (panelRef.current?.offsetParent) {
+      setPosition((pos) => {
+        return constrainPosition(pos, { ...opts, offsetParent: panelRef.current!.offsetParent });
+      });
+    }
+  }, [panelRef.current]);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
